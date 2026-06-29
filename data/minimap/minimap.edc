@@ -1,0 +1,90 @@
+/* prevue/minimap
+ *
+ * Parts:
+ *   "bg"                type, RECT, purely visual
+ *   "thumbnail.image"   SWALLOW * required
+ *   "viewport.border"   IMAGE/RECT - border around the viewport
+ *   "viewport"          RECT - dragable viewport indicator * required
+ *
+ */
+
+collections {
+
+   group {
+      name: "prevue/minimap";
+      min: 90 70;
+
+      images.image: "images/viewport_border.png" COMP;
+
+      parts {
+
+         part {
+            name: "bg";
+            type: RECT;
+            scale;
+
+            description {
+               state: "default" 0.0;
+               rel1 { relative: 0.0 0.0; }
+               rel2 { relative: 1.0 1.0; }
+               color: 0 0 0 196;
+            }
+         }
+
+         part {
+            name: "thumbnail.image"; // required
+            type: SWALLOW; 
+            scale;
+
+            description {
+               state: "default" 0.0;
+               rel1 { relative: 0.0 0.0; offset: 1 1; }
+               rel2 { relative: 1.0 1.0; offset: -2 -2; }
+               offscale;
+            }
+         }
+
+
+         part {
+            name: "viewport.border";
+            type: IMAGE;
+            scale;
+
+            description {
+               state: "default" 0.0;
+               rel.to: "viewport";
+               rel1 { relative: 0.0 0.0; offset: -1 -1; }
+               rel2 { relative: 1.0 1.0; offset: 0 0; }
+               image.normal: "images/viewport_border.png";
+               image.border: 1 1 1 1;
+               image.middle: 0;
+               min: 18 18;
+               color: 0 0 0 164;
+               offscale;
+            }
+         }
+
+
+         part {
+            name: "viewport"; // required
+            type: RECT;
+            scale;
+
+            dragable {
+               x: 1 1 0;
+               y: 1 1 0;
+               confine: "thumbnail.image";
+            }
+
+            description {
+               state: "default" 0.0;
+               rel1 { relative: 0.0 0.0; offset: 2 2;}
+               rel2 { relative: 1.0 1.0; offset: -3 -3; }
+               min: 16 16;
+               color: 255 255 255 148;
+               offscale;
+            }
+         }
+      } 
+   }
+}
