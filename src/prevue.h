@@ -54,11 +54,14 @@ struct _ImageState {
     int          drag_oy;
     double       drag_pan_x;
     double       drag_pan_y;
+    bool         fit_applied;
+    bool         smooth_scale; /* true = bilinear, false = nearest-neighbour */
 };
 
 /* Minimap overlay */
 struct _MinimapData {
     Evas_Object *edje;      /* the EDJ object (prevue/minimap group)  */
+    Evas_Object *thumb;     /* store the thumb pointer for deletion   */
     bool         visible;
 };
 

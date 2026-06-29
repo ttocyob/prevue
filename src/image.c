@@ -143,6 +143,7 @@ image_load(PrevueApp *app, const char *abs_path)
     }
     s->orig_w = w;
     s->orig_h = h;
+    s->smooth_scale = true;   /* bilinear by default */
 
     evas_object_event_callback_add(app->win, EVAS_CALLBACK_MOUSE_WHEEL,
                                _mouse_wheel_cb, app);
@@ -194,8 +195,12 @@ image_recalc(PrevueApp *app)
     s->fit_zoom = (fit_w < fit_h) ? fit_w : fit_h;
     if (s->fit_zoom > 1.0) s->fit_zoom = 1.0;
 
-    if (s->zoom == 1.0 && s->fit_zoom < 1.0)
+    /* Snap to fit on first recalc only */
+    if (!s->fit_applied)
+    {
         s->zoom = s->fit_zoom;
+        s->fit_applied = true;
+    }
 
     s->zoom = _clamp(s->zoom, ZOOM_MIN, ZOOM_MAX);
 
@@ -209,6 +214,14 @@ image_recalc(PrevueApp *app)
 
     evas_object_move(app->image, img_x, img_y);
     evas_object_resize(app->image, img_w, img_h);
+
+    /* Pixel mode: disable smooth scaling above 3× zoom */
+    Evas_Object *internal = elm_image_object_get(app->image);
+    if (internal)
+    {
+        Eina_Bool smooth = (s->zoom < 1.0) ? EINA_TRUE : EINA_FALSE;
+        evas_object_image_smooth_scale_set(internal, smooth);
+    }
 
     if (s->zoom > s->fit_zoom + 0.001)
         minimap_update(app);
@@ -259,6 +272,8 @@ image_replace(PrevueApp *app, const char *abs_path)
     }
     image_free(app->img);
     app->img = NULL;
+
+    minimap_free(app);   /* important: destroy old minimap before loading new image */
 
     if (!image_load(app, abs_path)) return false;
 

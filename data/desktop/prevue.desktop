@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Prevu
-Comment=Image Viewer
-Exec=prevu %f
+Name=Prevue
+Comment=Image Previewer
+Exec=prevue %f
 Icon=prevue
 Terminal=false
 Type=Application

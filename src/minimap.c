@@ -64,6 +64,7 @@ _minimap_create(PrevueApp *app)
 
     app->minimap = calloc(1, sizeof(MinimapData));
     app->minimap->edje    = edje;
+    app->minimap->thumb   = thumb; /* store the thumb pointer */
     app->minimap->visible = false;
 
     evas_object_stack_above(edje, app->image);
@@ -164,6 +165,8 @@ void
 minimap_free(PrevueApp *app)
 {
     if (!app->minimap) return;
+    edje_object_part_unswallow(app->minimap->edje, app->minimap->thumb);
+    evas_object_del(app->minimap->thumb);
     evas_object_del(app->minimap->edje);
     free(app->minimap);
     app->minimap = NULL;
