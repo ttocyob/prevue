@@ -2,6 +2,11 @@
 #include "image.h"
 #include <Ecore_Ipc.h>
 
+typedef struct {
+    Eina_Bool    *ack;
+    Ecore_Timer **timer;
+} ClientWaitCtx;
+
 static Ecore_Ipc_Server        *_server  = NULL;
 static Ecore_Event_Handler     *_hdl_add = NULL;
 static Ecore_Event_Handler     *_hdl_del = NULL;
@@ -59,18 +64,24 @@ _client_data_cb(void *data, int type EINA_UNUSED, void *event)
 static Eina_Bool
 _server_data_cb(void *data, int type EINA_UNUSED, void *event)
 {
+    ClientWaitCtx *ctx = data;
     Ecore_Ipc_Event_Server_Data *e = event;
+
     if (e->major == IPC_CMD_ACK)
     {
-        *(Eina_Bool *)data = EINA_TRUE;
+        *(ctx->ack) = EINA_TRUE;
         ecore_main_loop_quit();
     }
     return ECORE_CALLBACK_PASS_ON;
 }
 
 static Eina_Bool
-_timeout_cb(void *data EINA_UNUSED)
+_timeout_cb(void *data)
 {
+    Ecore_Timer **timer = data;
+    *timer = NULL;   /* Ecore deletes this timer itself once we return
+                       * ECORE_CALLBACK_CANCEL — null the caller's handle
+                       * so ipc_client_send() doesn't try to delete it again. */
     ecore_main_loop_quit();
     return ECORE_CALLBACK_CANCEL;
 }
@@ -102,15 +113,19 @@ ipc_client_send(const char *abs_path)
     ecore_ipc_server_send(srv, IPC_CMD_OPEN, 0, 0, 0, 0, abs_path, len);
 
     /* Block until ACK or 2-second timeout */
+    Ecore_Timer *timer = NULL;
+    timer = ecore_timer_add(2.0, _timeout_cb, &timer);
+
+    ClientWaitCtx ctx = { .ack = &ack_received, .timer = &timer };
     Ecore_Event_Handler *hdl =
         ecore_event_handler_add(ECORE_IPC_EVENT_SERVER_DATA,
-                                _server_data_cb, &ack_received);
-    Ecore_Timer *timer = ecore_timer_add(2.0, _timeout_cb, NULL);
+                                _server_data_cb, &ctx);
 
     ecore_main_loop_begin();
 
-    ecore_timer_del(timer);
     ecore_event_handler_del(hdl);
+    if (timer) ecore_timer_del(timer);   /* NULL if _timeout_cb already
+                                           * self-cancelled it via CANCEL */
     ecore_ipc_server_del(srv);
     ecore_ipc_shutdown();
 

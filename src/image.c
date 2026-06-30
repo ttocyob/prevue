@@ -168,14 +168,27 @@ image_load(PrevueApp *app, const char *abs_path)
 void
 image_window_fit(PrevueApp *app)
 {
-    double scale_w = (app->img->orig_w > PREVIEW_MAX_W)
-                     ? (double)PREVIEW_MAX_W / app->img->orig_w : 1.0;
-    double scale_h = (app->img->orig_h > PREVIEW_MAX_H)
-                     ? (double)PREVIEW_MAX_H / app->img->orig_h : 1.0;
-    double scale   = (scale_w < scale_h) ? scale_w : scale_h;
+    double scale = elm_config_scale_get();
+    if (scale < 1.0 || scale > 2.0) scale = 1.0;
 
-    int new_w = MAX((int)(app->img->orig_w * scale), MIN_WIN_W);
-    int new_h = MAX((int)(app->img->orig_h * scale), MIN_WIN_H);
+    int max_w = (int)(PREVIEW_MAX_W * scale);
+    int max_h = (int)(PREVIEW_MAX_H * scale);
+
+    /* baseline: native size times E's scale factor */
+    double fit_scale = scale;
+    double scaled_w  = app->img->orig_w * fit_scale;
+    double scaled_h  = app->img->orig_h * fit_scale;
+
+    /* scale further down only if it overflows the ceiling */
+    if (scaled_w > max_w || scaled_h > max_h)
+    {
+        double down_w = (double)max_w / app->img->orig_w;
+        double down_h = (double)max_h / app->img->orig_h;
+        fit_scale = (down_w < down_h) ? down_w : down_h;
+    }
+
+    int new_w = MAX((int)(app->img->orig_w * fit_scale), MIN_WIN_W);
+    int new_h = MAX((int)(app->img->orig_h * fit_scale), MIN_WIN_H);
     evas_object_resize(app->win, new_w, new_h);
 }
 
@@ -193,7 +206,10 @@ image_recalc(PrevueApp *app)
     double fit_w = (double)win_w / s->orig_w;
     double fit_h = (double)win_h / s->orig_h;
     s->fit_zoom = (fit_w < fit_h) ? fit_w : fit_h;
-    if (s->fit_zoom > 1.0) s->fit_zoom = 1.0;
+    /* no longer clamped to 1.0 — image_window_fit() can legitimately
+     * size the window larger than the image (E scale > 1.0), and
+     * fit_zoom must be able to represent that, or zoom snaps to 1.0
+     * instead of following the window. */
 
     /* Snap to fit on first recalc only */
     if (!s->fit_applied)
@@ -215,11 +231,14 @@ image_recalc(PrevueApp *app)
     evas_object_move(app->image, img_x, img_y);
     evas_object_resize(app->image, img_w, img_h);
 
-    /* Pixel mode: disable smooth scaling above 3× zoom */
+    /* Pixel mode: disable smooth scaling only when zoomed in beyond fit.
+     * fit_zoom can legitimately exceed 1.0 (E scale factor > 1.0), so
+     * comparing against a hardcoded 1.0 here would wrongly trigger
+     * nearest-neighbour on a freshly-opened image at high E-scale. */
     Evas_Object *internal = elm_image_object_get(app->image);
     if (internal)
     {
-        Eina_Bool smooth = (s->zoom < 1.0) ? EINA_TRUE : EINA_FALSE;
+        Eina_Bool smooth = (s->zoom <= s->fit_zoom + 0.001) ? EINA_TRUE : EINA_FALSE;
         evas_object_image_smooth_scale_set(internal, smooth);
     }
 

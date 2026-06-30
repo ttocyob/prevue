@@ -119,29 +119,33 @@ void
 minimap_update(PrevueApp *app)
 {
     if (!app->img) return;
-
     if (!app->minimap)
         if (!_minimap_create(app)) return;
 
-    /* Size and place the EDJ — aspect-correct within MINIMAP_W x MINIMAP_H */
+    double scale = elm_config_scale_get();
+    if (scale < 1.0 || scale > 2.0) scale = 1.0;
+    int mmap_w      = (int)(MINIMAP_W      * scale);
+    int mmap_h      = (int)(MINIMAP_H      * scale);
+    int mmap_margin = (int)(MINIMAP_MARGIN * scale);
+
     int win_w, win_h;
     evas_object_geometry_get(app->win, NULL, NULL, &win_w, &win_h);
 
     double aspect = (double)app->img->orig_w / (double)app->img->orig_h;
     int mw, mh;
-    if (aspect >= (double)MINIMAP_W / (double)MINIMAP_H)
+    if (aspect >= (double)mmap_w / (double)mmap_h)
     {
-        mw = MINIMAP_W;
-        mh = (int)round(MINIMAP_W / aspect);
+        mw = mmap_w;
+        mh = (int)round(mmap_w / aspect);
     }
     else
     {
-        mh = MINIMAP_H;
-        mw = (int)round(MINIMAP_H * aspect);
+        mh = mmap_h;
+        mw = (int)round(mmap_h * aspect);
     }
 
     evas_object_move(app->minimap->edje,
-                     win_w - mw - MINIMAP_MARGIN, MINIMAP_MARGIN);
+                     win_w - mw - mmap_margin, mmap_margin);
     evas_object_resize(app->minimap->edje, mw, mh);
 
     _viewport_update(app);

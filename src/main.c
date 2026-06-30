@@ -30,6 +30,28 @@ _win_resize_cb(void *data, Evas *e EINA_UNUSED,
     image_recalc(app);
 }
 
+static Eina_Bool
+_config_changed_cb(void *data, int type EINA_UNUSED, void *event EINA_UNUSED)
+{
+    static double last_scale = 0.0;
+    PrevueApp *app = data;
+
+    double scale = elm_config_scale_get();
+    if (scale < 1.0 || scale > 2.0) scale = 1.0;
+    if (scale == last_scale) return ECORE_CALLBACK_PASS_ON;
+    last_scale = scale;
+
+    edje_scale_set(scale);
+    if (app->img)
+    {
+        app->img->fit_applied = false;   /* force re-snap to new fit_zoom */
+        image_window_fit(app);
+        image_recalc(app);
+    }
+
+    return ECORE_CALLBACK_PASS_ON;
+}
+
 EAPI_MAIN int
 elm_main(int argc, char **argv)
 {
@@ -49,8 +71,12 @@ elm_main(int argc, char **argv)
     }
 
     /* no running instance - initiate it */
-
     elm_init(argc, argv);
+
+double scale = elm_config_scale_get();
+if (scale < 1.0 || scale > 2.0) scale = 1.0;
+edje_scale_set(scale);
+
     elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_CLOSED);
 
     PrevueApp *app = calloc(1, sizeof(PrevueApp));
@@ -64,6 +90,7 @@ elm_main(int argc, char **argv)
     elm_win_autodel_set(app->win, EINA_TRUE);
     evas_object_size_hint_min_set(app->win, MIN_WIN_W, MIN_WIN_H);
     evas_object_smart_callback_add(app->win, "delete,request", _win_del_cb, app);
+ecore_event_handler_add(ELM_EVENT_CONFIG_ALL_CHANGED, _config_changed_cb, app);
 
     /* set the canvas bg: there must be another way to override elm_bg than using a rect */
     Evas_Object *bg = evas_object_rectangle_add(evas_object_evas_get(app->win));

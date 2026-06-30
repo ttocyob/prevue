@@ -20,5 +20,8 @@ dir_data   = join_paths(dir_prefix, get_option('datadir'))
 
 edje_cc = find_program('edje_cc', required : true)
 
+meson.add_install_script('sh', '-c',
+  'xdg-icon-resource install --novendor --size 128 $MESON_INSTALL_DESTDIR_PREFIX/share/icons/hicolor/128x128/apps/prevue.png prevue')
+
 subdir('src')
 subdir('data')
