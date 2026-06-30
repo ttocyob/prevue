@@ -38,9 +38,17 @@ sudo ninja -C build install
 prevue <image>
 ```
 
-Supported formats depend on the EFL loaders available on your system. Common formats include JPEG, PNG, GIF, WebP, and SVG. Video files with embedded thumbnails may also render depending on your EFL build.
+Prevue can also be launched without an argument - it opens at a minimum window size with the IPC server ready.
 
-Opening a second file while Prevue is running, forwards the path to the existing instance. The window resizes to match the new image.
+### From the file manager or desktop
+
+`ninja install` installs the `.desktop` file alongside the binary, so Prevue shows up in Applications -> Graphics menu automatically. If you set it as the default handler for your image formats, opening an image is just double-click (or select + Enter).
+
+### Single-instance behavior
+
+Only one Prevue instance ever runs. Opening a file checks for a running instance via IPC and forwards the path to it rather than spawning a new window. The existing window resizes and re-fits to the new image.
+
+Supported formats depend on the EFL loaders available on your system. Common formats include JPEG, PNG, GIF, WebP, and SVG. Video files with embedded thumbnails may also render depending on your EFL build.
 
 ## License
 
